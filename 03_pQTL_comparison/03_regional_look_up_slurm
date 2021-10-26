@@ -1,0 +1,81 @@
+#!/bin/bash
+#!
+
+## script to look up variants in a specific region
+# Submit jobs
+# while IFS= read -r line; do sbatch scripts/03_regional_look_up_slurm $line; done < input/Regional.look.up.SOMAscan.Olink.
+
+
+#!#############################################################
+#!#### Modify the options in this section as appropriate ######
+#!#############################################################
+
+#! Name of the job:
+#SBATCH -J look-up-pQTLs
+
+#! Which project should be charged:
+#SBATCH -A MRC-EPID-SL0-CPU
+
+#! How many whole nodes should be allocated?
+# In your case you should leave this at 1
+#SBATCH --nodes=1
+
+#SBATCH --ntasks=1
+
+#SBATCH --cpus-per-task 3
+
+## restrict the number of nodes to be used (maximum of 30)
+#SBATCH --exclude=cpu-d-[25-30]
+
+#! Specify required run time
+#SBATCH --time=100:00:00
+
+#! What types of email messages do you wish to receive?
+#SBATCH --mail-type=FAIL
+
+#! Uncomment this to prevent the job from being requeued (e.g. if
+#! interrupted by node failure or system downtime):
+##SBATCH --no-requeue
+
+#! Do not change:
+#SBATCH -p epid
+
+#! ############################################################
+#! Modify the settings below to specify the application's environment, location 
+#! and launch method:
+
+#! Optionally modify the environment seen by the application
+#! (note that SLURM reproduces the environment at submission irrespective of ~/.bashrc):
+. /etc/profile.d/modules.sh                # Leave this line (enables the module command)
+module purge                               # Removes all modules still loaded
+module load rhel7/default-peta4            # REQUIRED - loads the basic environment
+
+#! Insert additional module load commands after this line if needed:
+
+module load gcc/5
+
+## export variables
+export SNP=${1}
+export SL=${2}
+export OL=${3}
+export CHR=${4}
+export POS=${5}
+export PLT=${6}
+
+## define region
+export POSS=$(($POS - 500000))
+export POSE=$(($POS + 500000))
+
+cd /home/mdp50/rds/rds-rjh234-mrc-epid/Studies/People/Maik/compare_SomaLogic_Olink/01_pQTLs_Fenland
+
+echo "Do regional look-up on platfrom ${PLT} for protein ${SL} or ${OL} on chromosome ${CHR} at position ${POSS} and ${POSE}"
+
+if [ ${PLT} == "Olink" ]; then
+	## call the R-script to do the job
+	scripts/04_look_up_Olink.R $SNP $OL $CHR $POS
+else
+	## call the R-script to do the job
+	scripts/05_look_up_SOMAscan.R $SNP $SL $CHR $POS
+fi
+
+
